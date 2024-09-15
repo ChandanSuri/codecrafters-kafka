@@ -1,4 +1,5 @@
 import socket  # noqa: F401
+import struct
 
 class Parser:
     def __init__(self, ) -> None:
@@ -37,28 +38,37 @@ class Broker:
 
     def handle_request(self):
         client_response = self.client.recv(1024)
+
         correlation_id = self.parser.get_correlation_id(client_response)
         api_version = self.parser.get_api_version(client_response)
-        broker_response = None
+        min_version = 0
+        max_version = 4
+        error_code = 0
 
-        if api_version < 0 or api_version > 4:
-            broker_response = self.create_response(correlation_id, 35)
-        else:
-            broker_response = self.create_response(correlation_id, -1)
+        if api_version < 0 or api_version >= 4:
+            error_code = 35
+
+        response_body = (
+            struct.pack(">H", api_version) +
+            struct.pack(">H", min_version) +
+            struct.pack(">H", max_version)
+        )
+        response_header = (
+            struct.pack(">I", correlation_id) +
+            struct.pack(">H", error_code)
+        )
+        
+        broker_response = self.create_response(response_header, response_body)
         
         self.client.sendall(broker_response)
-        
+
         self.client.close()        
 
-    def create_response(self, message: int, error_code: int):
-        msg_bytes = message.to_bytes(4, byteorder="big", signed=True)
-        len_bytes = len(msg_bytes).to_bytes(4, byteorder="big", signed=True)
-
-        if error_code != -1:
-            err_bytes = int(35).to_bytes(2, byteorder="big", signed=False)
-            return len_bytes + msg_bytes + err_bytes
-
-        return len_bytes + msg_bytes
+    def create_response(self, header, body):
+        msg_len = len(header) + len(body)
+        len_bytes = len(msg_len).to_bytes(4, byteorder="big", signed=True)
+        response = len_bytes + header + body
+        return response
 
 def main():
     print("Logs from your program will appear here!")
