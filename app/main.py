@@ -51,7 +51,8 @@ class Broker:
         response_body = (
             struct.pack(">H", api_version) +
             struct.pack(">H", min_version) +
-            struct.pack(">H", max_version)
+            struct.pack(">H", max_version) + 
+            struct.pack(">B", 0)
         )
         response_header = (
             struct.pack(">I", correlation_id) +
