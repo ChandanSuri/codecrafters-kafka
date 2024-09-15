@@ -67,7 +67,7 @@ class Broker:
 
     def create_response(self, header, body):
         msg_len = len(header) + len(body)
-        len_bytes = msg_len.to_bytes(4, byteorder="big", signed=True)
+        len_bytes = struct.pack(">I", msg_len)
         response = len_bytes + header + body
         return response
 
