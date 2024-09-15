@@ -40,13 +40,12 @@ class Broker:
         client_response = self.client.recv(1024)
 
         correlation_id = self.parser.get_correlation_id(client_response)
-        # api_version = self.parser.get_api_version(client_response)
-        api_version = 4
+        api_version = self.parser.get_api_version(client_response)
         min_version = 0
         max_version = 4
         error_code = 0
 
-        if api_version < 0 or api_version >= 4:
+        if api_version < 0 or api_version > 4:
             error_code = 35
 
         response_body = (
@@ -56,18 +55,12 @@ class Broker:
             struct.pack(">B", 0)
         )
 
-        print(response_body)
-
         response_header = (
             struct.pack(">I", correlation_id) +
             struct.pack(">H", error_code)
         )
-
-        print(response_header)
         
         broker_response = self.create_response(response_header, response_body)
-
-        print(broker_response)
         
         self.client.sendall(broker_response)
 
@@ -75,12 +68,7 @@ class Broker:
 
     def create_response(self, header, body):
         msg_len = len(header) + len(body)
-
-        print(msg_len)
-
         len_bytes = struct.pack(">I", msg_len)
-
-        print(len_bytes)
         
         response = len_bytes + header + body
         return response
